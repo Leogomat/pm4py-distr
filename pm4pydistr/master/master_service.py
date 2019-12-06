@@ -628,3 +628,53 @@ def do_shutdown():
         MasterVariableContainer.master.perform_shutdown(session, process, use_transition, no_samples)
 
     return jsonify({})
+
+
+#Additional functionality
+
+
+@MasterSocketListener.app.route("/doTraining", methods=["GET"])
+def do_training():
+    check_master_initialized()
+    except_if_not_slave_loading_requested()
+    wait_till_slave_load_requested()
+
+    process = request.args.get('process', type=str)
+    keyphrase = request.args.get('keyphrase', type=str)
+    session = request.args.get('session', type=str)
+    use_transition = request.args.get(PARAMETER_USE_TRANSITION, type=str, default=str(DEFAULT_USE_TRANSITION))
+    no_samples = request.args.get(PARAMETER_NO_SAMPLES, type=int, default=DEFAULT_MAX_NO_SAMPLES)
+
+    str_tr_attr = request.args.get('str_tr_attr', type=str, default=[])
+    str_ev_attr = request.args.get('str_ev_attr', type=str, default=["concept:name", "org:group", "org:resource"])
+    num_ev_attr = request.args.get('num_ev_attr', type=str, default=[])
+    num_tr_attr = request.args.get('num_tr_attr', type=str, default=[])
+
+    if keyphrase == configuration.KEYPHRASE:
+        MasterVariableContainer.master.do_training(session, process, use_transition, no_samples)
+
+    return jsonify({})
+
+
+@MasterSocketListener.app.route("/doPrediction", methods=["POST"])
+def do_prediction():
+    check_master_initialized()
+    except_if_not_slave_loading_requested()
+    wait_till_slave_load_requested()
+
+    process = request.args.get('process', type=str)
+    keyphrase = request.args.get('keyphrase', type=str)
+    session = request.args.get('session', type=str)
+    use_transition = request.args.get(PARAMETER_USE_TRANSITION, type=str, default=str(DEFAULT_USE_TRANSITION))
+    no_samples = request.args.get(PARAMETER_NO_SAMPLES, type=int, default=DEFAULT_MAX_NO_SAMPLES)
+
+    try:
+        content = json.loads(request.data)
+    except:
+        content = json.loads(request.data.decode('utf-8'))
+
+    if keyphrase == configuration.KEYPHRASE:
+
+        prediction = MasterVariableContainer.master.do_prediction(session, process, use_transition, no_samples, content)
+
+    return jsonify({'prediction': prediction})

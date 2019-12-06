@@ -36,3 +36,12 @@ PARAMETERS_BASE_FOLDERS = "basefolders"
 
 SLEEPING_TIME = 30
 SESSION_EXPIRATION = 70
+
+# Additional constants
+
+NUMBER_OF_SLAVES = 1
+TRAINING_PART = 0.8
+NUMBER_OF_PARTITIONS = 32
+MODEL_PATH = "Data/Ensembles"
+LOGS_PATH = "Data/Event Logs"
+TEST_LOG_PATH = "testing"

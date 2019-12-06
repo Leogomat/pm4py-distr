@@ -7,13 +7,24 @@ from pm4pydistr.configuration import PARAMETER_USE_TRANSITION, DEFAULT_USE_TRANS
 from pm4pydistr.configuration import PARAMETER_NO_SAMPLES, DEFAULT_MAX_NO_SAMPLES
 from pm4py.util import constants as pm4py_constants
 from pm4py.objects.log.util import xes
+from pm4py.objects.log.importer.parquet import factory as parquet_importer
+from pm4py.objects.log.exporter.parquet import factory as parquet_exporter
+from pm4py.objects.log.importer.xes import factory as xes_importer
 from pm4pydistr.configuration import PARAMETER_NUM_RET_ITEMS, DEFAULT_MAX_NO_RET_ITEMS
+
+from pm4py.objects.log.log import EventLog, Trace, Event
+from pm4pypred.algo.prediction import factory as prediction_factory
+from pm4py.objects.log.util import dataframe_utils
+from pm4py.objects.conversion.log import factory as conversion_factory
+import pickle
 
 from pm4pydistr.log_handlers import parquet as parquet_handler
 
 import os
 import json
 import sys
+import statistics
+
 
 import logging
 log = logging.getLogger('werkzeug')
@@ -610,3 +621,121 @@ def do_shutdown():
         os._exit(0)
 
     return jsonify({})
+
+
+#Additional functionality
+def clean_log_from_na(log):
+    for trace in log:
+        for event in trace:
+            attr_keys = list(event.keys())
+            for k in attr_keys:
+                if str(event[k]).lower() == "nan" or str(event[k]).lower() == "nat":
+                    del event[k]
+            #print(k, event[k])
+    return log
+
+@SlaveSocketListener.app.route("/doTraining", methods=["GET"])
+def do_training():
+    keyphrase = request.args.get('keyphrase', type=str)
+    process = request.args.get('process', type=str)
+    str_tr_attr = request.args.get('str_tr_attr', type=str, default=[])
+    str_ev_attr = request.args.get('str_ev_attr', type=str, default=["concept:name", "org:group", "org:resource", "dismissal", "vehicleClass", "notificationType"])
+    num_ev_attr = request.args.get('num_ev_attr', type=str, default=["amount", "points", "paymentAmount", "article"])
+    num_tr_attr = request.args.get('num_tr_attr', type=str, default=[])
+
+
+
+    if keyphrase == configuration.KEYPHRASE:
+        # Import the part of the training log assigned to the slave
+        training_df = parquet_handler.load_parquet_from_path(SlaveVariableContainer.conf, None, None)
+
+        training_log = clean_log_from_na(conversion_factory.apply(training_df))
+
+        # Import the test log
+        test_df = parquet_handler.load_parquet_from_path(configuration.TEST_LOG_PATH, None, None)
+        test_log = clean_log_from_na(conversion_factory.apply(test_df))
+
+        # Declare lists that store the total time of each case in the training and test logs
+        training_time_vector = []
+        test_time_vector = []
+
+        # Create event log with only the first event of each case of the training log
+        training_log_first_event = EventLog()
+        for index, case in enumerate(training_log):
+
+            new_case = Trace()
+            new_case.attributes["concept:name"] = str(index)
+            new_case.append(case[0])
+
+            training_log_first_event.append(new_case)
+
+            # Store total time of case
+            training_time_vector.append([(case[-1]["time:timestamp"] - case[0]["time:timestamp"]).total_seconds()])
+
+        # Create event log with only the first event of each case of the training log
+        test_log_first_event = EventLog()
+        for index, case in enumerate(test_log):
+            new_case = Trace()
+            new_case.attributes["concept:name"] = str(index)
+
+            new_case.append(case[0])
+
+            test_log_first_event.append(new_case)
+
+            # Store total time of case
+            test_time_vector.append((case[-1]["time:timestamp"] - case[0]["time:timestamp"]).total_seconds())
+
+        # Train and persist the ensemble
+        parameters = {}
+        parameters["y_orig"] = training_time_vector
+        parameters["str_tr_attr"] = str_tr_attr
+        parameters["str_ev_attr"] = str_ev_attr
+        parameters["num_tr_attr"] = num_tr_attr
+        parameters["num_ev_attr"] = num_ev_attr
+        model = prediction_factory.train(training_log_first_event, variant="elasticnet", parameters=parameters)
+        with open(os.path.join(configuration.MODEL_PATH, SlaveVariableContainer.conf + '@@' + str(process)), "wb") as output:
+            pickle.dump(model, output, pickle.HIGHEST_PROTOCOL)
+
+        # Perform tests on prediction quality
+        prediction_error = []
+        for i in range(len(test_log_first_event)):
+            prediction = prediction_factory.test(model, test_log_first_event[i])
+            real_value = test_time_vector[i]
+            error = prediction - real_value
+            prediction_error.append(abs(error))
+            print("Predicted time for case " + str(i) + ": " + str(prediction) + "; Real value: " + str(
+                real_value) + "; Relative error: " + str(error))
+        print("Mean error: " + str(statistics.mean(prediction_error)))
+
+        print("Training of ensemble complete.")
+
+    return jsonify({})
+
+
+@SlaveSocketListener.app.route("/doPrediction", methods=["POST"])
+def do_prediction():
+    keyphrase = request.args.get('keyphrase', type=str)
+    process = request.args.get('process', type=str)
+
+    if keyphrase == configuration.KEYPHRASE:
+        # Load the given event
+        try:
+            content = json.loads(request.data)
+        except:
+            content = json.loads(request.data.decode('utf-8'))
+
+        # Create a trace with only the first event
+        first_event = Event(content)
+        trace = Trace()
+        trace.append(first_event)
+
+        with open(os.path.join(configuration.MODEL_PATH, SlaveVariableContainer.conf + '@@' + str(process)), "rb") as input:
+            # Load the model that was trained on the given process
+            model = pickle.load(input)
+
+            print(model)
+            # Perform prediction
+            prediction = prediction_factory.test(model, trace)
+
+    return jsonify({'prediction': prediction})
+

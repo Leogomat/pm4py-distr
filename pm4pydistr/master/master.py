@@ -3,6 +3,7 @@ from pm4pydistr.master.variable_container import MasterVariableContainer
 
 from pm4pydistr.configuration import PARAMETERS_PORT, PARAMETERS_HOST, PARAMETERS_CONF, BASE_FOLDER_LIST_OPTIONS
 from pm4py.objects.log.importer.parquet import factory as parquet_importer
+from pm4py.objects.log.exporter.parquet import factory as parquet_exporter
 from pm4pydistr.master.rqsts.master_assign_request import MasterAssignRequest
 from pm4pydistr.master.rqsts.dfg_calc_request import DfgCalcRequest
 from pm4pydistr.master.rqsts.ea_request import EaRequest
@@ -24,6 +25,8 @@ from pm4pydistr.master.rqsts.caching_request import CachingRequest
 from pm4pydistr.master.rqsts.conf_align_request import AlignRequest
 from pm4pydistr.master.rqsts.conf_tbr_request import TbrRequest
 from pm4pydistr.master.rqsts.shutdown_request import ShutdownRequest
+from pm4pydistr.master.rqsts.prediction_request import PredictionRequest
+from pm4pydistr.master.rqsts.training_request import TrainingRequest
 import math
 import uuid
 
@@ -37,6 +40,8 @@ from pm4pydistr.configuration import DEFAULT_MAX_NO_RET_ITEMS
 from pm4py.util import points_subset
 import time
 import sys
+import statistics
+import shutil
 
 
 class Master:
@@ -693,3 +698,49 @@ class Master:
             thread.join()
 
         return None
+
+
+    # Additional functionality
+
+    def do_training(self, session, process, use_transition, no_samples):
+        all_slaves = list(self.slaves.keys())
+
+        threads = []
+
+        for slave in all_slaves:
+            slave_host = self.slaves[slave][1]
+            slave_port = str(self.slaves[slave][2])
+
+            m = TrainingRequest(session, slave_host, slave_port, use_transition, no_samples, process)
+            m.start()
+
+            threads.append(m)
+
+        for thread in threads:
+            thread.join()
+
+        return None
+
+
+    def do_prediction(self, session, process, use_transition, no_samples, content):
+        all_slaves = list(self.slaves.keys())
+
+        threads = []
+        results = []
+
+        for slave in all_slaves:
+            slave_host = self.slaves[slave][1]
+            slave_port = str(self.slaves[slave][2])
+
+            m = PredictionRequest(session, slave_host, slave_port, use_transition, no_samples, process, content)
+            m.start()
+
+            threads.append(m)
+
+        for thread in threads:
+            thread.join()
+            results.append(thread.content['prediction'])
+
+        aggregated_result = statistics.median(results)
+
+        return aggregated_result
