@@ -45,3 +45,19 @@ NUMBER_OF_PARTITIONS = 32
 MODEL_PATH = "Data/Ensembles"
 LOGS_PATH = "Data/Event Logs"
 TEST_LOG_PATH = "testing"
+
+# Attributes to be considered when training the ensemble
+TRAINING_ATTRIBUTES = {
+    "roadtraffic100traces": {
+        'str_tr_attr': [],
+        'str_ev_attr': ["org:group", "org:resource", "vehicleClass"],
+        'num_ev_attr': ["amount", "article"],
+        'num_tr_attr': []
+    },
+    "receipt": {
+        'str_tr_attr': [],
+        'str_ev_attr': ["org:group", "org:resource"],
+        'num_ev_attr': [],
+        'num_tr_attr': []
+    }
+}

@@ -1,5 +1,6 @@
 from pm4pydistr.master.rqsts.basic_request import BasicMasterRequest
 from pm4pydistr.configuration import KEYPHRASE
+from pm4pydistr import configuration
 import requests
 import json
 
@@ -11,6 +12,7 @@ class TrainingRequest(BasicMasterRequest):
         self.use_transition = use_transition
         self.no_samples = no_samples
         self.process = process
+
         BasicMasterRequest.__init__(self, None, target_host, target_port, use_transition, no_samples, process)
 
     def run(self):

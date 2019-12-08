@@ -631,24 +631,16 @@ def clean_log_from_na(log):
             for k in attr_keys:
                 if str(event[k]).lower() == "nan" or str(event[k]).lower() == "nat":
                     del event[k]
-            #print(k, event[k])
     return log
 
 @SlaveSocketListener.app.route("/doTraining", methods=["GET"])
 def do_training():
     keyphrase = request.args.get('keyphrase', type=str)
     process = request.args.get('process', type=str)
-    str_tr_attr = request.args.get('str_tr_attr', type=str, default=[])
-    str_ev_attr = request.args.get('str_ev_attr', type=str, default=["concept:name", "org:group", "org:resource", "dismissal", "vehicleClass", "notificationType"])
-    num_ev_attr = request.args.get('num_ev_attr', type=str, default=["amount", "points", "paymentAmount", "article"])
-    num_tr_attr = request.args.get('num_tr_attr', type=str, default=[])
-
-
 
     if keyphrase == configuration.KEYPHRASE:
         # Import the part of the training log assigned to the slave
         training_df = parquet_handler.load_parquet_from_path(SlaveVariableContainer.conf, None, None)
-
         training_log = clean_log_from_na(conversion_factory.apply(training_df))
 
         # Import the test log
@@ -686,12 +678,9 @@ def do_training():
             test_time_vector.append((case[-1]["time:timestamp"] - case[0]["time:timestamp"]).total_seconds())
 
         # Train and persist the ensemble
-        parameters = {}
+        parameters = configuration.TRAINING_ATTRIBUTES[process]
         parameters["y_orig"] = training_time_vector
-        parameters["str_tr_attr"] = str_tr_attr
-        parameters["str_ev_attr"] = str_ev_attr
-        parameters["num_tr_attr"] = num_tr_attr
-        parameters["num_ev_attr"] = num_ev_attr
+
         model = prediction_factory.train(training_log_first_event, variant="elasticnet", parameters=parameters)
         with open(os.path.join(configuration.MODEL_PATH, SlaveVariableContainer.conf + '@@' + str(process)), "wb") as output:
             pickle.dump(model, output, pickle.HIGHEST_PROTOCOL)
@@ -733,7 +722,6 @@ def do_prediction():
             # Load the model that was trained on the given process
             model = pickle.load(input)
 
-            print(model)
             # Perform prediction
             prediction = prediction_factory.test(model, trace)
 

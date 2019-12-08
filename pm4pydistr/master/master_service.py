@@ -645,11 +645,6 @@ def do_training():
     use_transition = request.args.get(PARAMETER_USE_TRANSITION, type=str, default=str(DEFAULT_USE_TRANSITION))
     no_samples = request.args.get(PARAMETER_NO_SAMPLES, type=int, default=DEFAULT_MAX_NO_SAMPLES)
 
-    str_tr_attr = request.args.get('str_tr_attr', type=str, default=[])
-    str_ev_attr = request.args.get('str_ev_attr', type=str, default=["concept:name", "org:group", "org:resource"])
-    num_ev_attr = request.args.get('num_ev_attr', type=str, default=[])
-    num_tr_attr = request.args.get('num_tr_attr', type=str, default=[])
-
     if keyphrase == configuration.KEYPHRASE:
         MasterVariableContainer.master.do_training(session, process, use_transition, no_samples)
 

@@ -706,6 +706,7 @@ class Master:
         all_slaves = list(self.slaves.keys())
 
         threads = []
+        statistics = {}
 
         for slave in all_slaves:
             slave_host = self.slaves[slave][1]
