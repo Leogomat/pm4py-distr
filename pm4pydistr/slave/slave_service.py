@@ -692,11 +692,11 @@ def do_training():
             real_value = test_time_vector[i]
             error = prediction - real_value
             prediction_error.append(abs(error))
-            print("Predicted time for case " + str(i) + ": " + str(prediction) + "; Real value: " + str(
-                real_value) + "; Relative error: " + str(error))
-        print("Mean error: " + str(statistics.mean(prediction_error)))
 
         print("Training of ensemble complete.")
+
+        print("Mean error: " + str(statistics.mean(prediction_error)))
+
 
     return jsonify({})
 
