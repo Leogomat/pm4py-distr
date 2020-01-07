@@ -25,10 +25,11 @@ import json
 import sys
 import statistics
 
-
 import logging
+
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
+
 
 class SlaveSocketListener(Thread):
     app = Flask(__name__)
@@ -80,14 +81,17 @@ def set_filters():
         try:
             SlaveVariableContainer.slave.filters[session][process] = eval(json.loads(request.data)["filters"])
         except:
-            SlaveVariableContainer.slave.filters[session][process] = eval(json.loads(request.data.decode('utf-8'))["filters"])
+            SlaveVariableContainer.slave.filters[session][process] = eval(
+                json.loads(request.data.decode('utf-8'))["filters"])
     return jsonify({})
+
 
 def get_filters_per_session(process, session):
     if session in SlaveVariableContainer.slave.filters:
         if process in SlaveVariableContainer.slave.filters[session]:
             return SlaveVariableContainer.slave.filters[session][process]
     return []
+
 
 @SlaveSocketListener.app.route("/calculateDfg", methods=["GET"])
 def calculate_dfg():
@@ -112,7 +116,9 @@ def calculate_dfg():
         parameters[PARAMETER_NO_SAMPLES] = no_samples
         parameters[pm4py_constants.PARAMETER_CONSTANT_ATTRIBUTE_KEY] = attribute_key
 
-        returned_dict = parquet_handler.calculate_dfg(SlaveVariableContainer.conf, process, SlaveVariableContainer.managed_logs[process], parameters=parameters)
+        returned_dict = parquet_handler.calculate_dfg(SlaveVariableContainer.conf, process,
+                                                      SlaveVariableContainer.managed_logs[process],
+                                                      parameters=parameters)
 
         return jsonify({"dfg": returned_dict})
     return jsonify({"dfg": {}})
@@ -141,7 +147,9 @@ def calculate_performance_dfg():
         parameters[PARAMETER_NO_SAMPLES] = no_samples
         parameters[pm4py_constants.PARAMETER_CONSTANT_ATTRIBUTE_KEY] = attribute_key
 
-        returned_dict = parquet_handler.calculate_performance_dfg(SlaveVariableContainer.conf, process, SlaveVariableContainer.managed_logs[process], parameters=parameters)
+        returned_dict = parquet_handler.calculate_performance_dfg(SlaveVariableContainer.conf, process,
+                                                                  SlaveVariableContainer.managed_logs[process],
+                                                                  parameters=parameters)
 
         return jsonify({"dfg": returned_dict})
     return jsonify({"dfg": {}})
@@ -176,7 +184,9 @@ def calculate_composite_obj():
         parameters[pm4py_constants.PARAMETER_CONSTANT_ATTRIBUTE_KEY] = attribute_key
         parameters["performance_required"] = performance_required
 
-        returned_dict = parquet_handler.calculate_process_schema_composite_object(SlaveVariableContainer.conf, process, SlaveVariableContainer.managed_logs[process], parameters=parameters)
+        returned_dict = parquet_handler.calculate_process_schema_composite_object(SlaveVariableContainer.conf, process,
+                                                                                  SlaveVariableContainer.managed_logs[
+                                                                                      process], parameters=parameters)
 
         return jsonify({"obj": returned_dict})
     return jsonify({"obj": {}})
@@ -202,7 +212,9 @@ def calculate_end_activities():
         parameters[PARAMETER_USE_TRANSITION] = use_transition
         parameters[PARAMETER_NO_SAMPLES] = no_samples
 
-        returned_dict = parquet_handler.get_end_activities(SlaveVariableContainer.conf, process, SlaveVariableContainer.managed_logs[process], parameters=parameters)
+        returned_dict = parquet_handler.get_end_activities(SlaveVariableContainer.conf, process,
+                                                           SlaveVariableContainer.managed_logs[process],
+                                                           parameters=parameters)
 
         return jsonify({"end_activities": returned_dict})
     return jsonify({"end_activities": {}})
@@ -228,7 +240,9 @@ def calculate_start_activities():
         parameters[PARAMETER_USE_TRANSITION] = use_transition
         parameters[PARAMETER_NO_SAMPLES] = no_samples
 
-        returned_dict = parquet_handler.get_start_activities(SlaveVariableContainer.conf, process, SlaveVariableContainer.managed_logs[process], parameters=parameters)
+        returned_dict = parquet_handler.get_start_activities(SlaveVariableContainer.conf, process,
+                                                             SlaveVariableContainer.managed_logs[process],
+                                                             parameters=parameters)
 
         return jsonify({"start_activities": returned_dict})
     return jsonify({"start_activities": {}})
@@ -257,7 +271,9 @@ def calculate_attribute_values():
         parameters[PARAMETER_NO_SAMPLES] = no_samples
         parameters[pm4py_constants.PARAMETER_CONSTANT_ATTRIBUTE_KEY] = attribute_key
 
-        returned_dict = parquet_handler.get_attribute_values(SlaveVariableContainer.conf, process, SlaveVariableContainer.managed_logs[process], parameters=parameters)
+        returned_dict = parquet_handler.get_attribute_values(SlaveVariableContainer.conf, process,
+                                                             SlaveVariableContainer.managed_logs[process],
+                                                             parameters=parameters)
 
         return jsonify({"values": returned_dict})
     return jsonify({"values": {}})
@@ -284,7 +300,9 @@ def calculate_attribute_names():
         parameters[PARAMETER_USE_TRANSITION] = use_transition
         parameters[PARAMETER_NO_SAMPLES] = no_samples
 
-        returned_list = parquet_handler.get_attribute_names(SlaveVariableContainer.conf, process, SlaveVariableContainer.managed_logs[process], parameters=parameters)
+        returned_list = parquet_handler.get_attribute_names(SlaveVariableContainer.conf, process,
+                                                            SlaveVariableContainer.managed_logs[process],
+                                                            parameters=parameters)
 
         return jsonify({"names": returned_list})
     return jsonify({"names": {}})
@@ -311,7 +329,8 @@ def calculate_log_summary():
         parameters[PARAMETER_USE_TRANSITION] = use_transition
         parameters[PARAMETER_NO_SAMPLES] = no_samples
 
-        summary = parquet_handler.get_log_summary(SlaveVariableContainer.conf, process, SlaveVariableContainer.managed_logs[process], parameters=parameters)
+        summary = parquet_handler.get_log_summary(SlaveVariableContainer.conf, process,
+                                                  SlaveVariableContainer.managed_logs[process], parameters=parameters)
 
         return jsonify({"summary": summary})
     return jsonify({"summary": {}})
@@ -340,7 +359,9 @@ def get_variants():
         parameters[PARAMETER_NO_SAMPLES] = no_samples
         parameters[PARAMETER_NUM_RET_ITEMS] = max_no_ret_items
 
-        returned_dict = parquet_handler.get_variants(SlaveVariableContainer.conf, process, SlaveVariableContainer.managed_logs[process], parameters=parameters)
+        returned_dict = parquet_handler.get_variants(SlaveVariableContainer.conf, process,
+                                                     SlaveVariableContainer.managed_logs[process],
+                                                     parameters=parameters)
 
         return jsonify(returned_dict)
     return jsonify({"variants": [], "events": 0, "cases": 0})
@@ -369,7 +390,8 @@ def get_cases():
         parameters[PARAMETER_NO_SAMPLES] = no_samples
         parameters[PARAMETER_NUM_RET_ITEMS] = max_no_ret_items
 
-        returned_dict = parquet_handler.get_cases(SlaveVariableContainer.conf, process, SlaveVariableContainer.managed_logs[process], parameters=parameters)
+        returned_dict = parquet_handler.get_cases(SlaveVariableContainer.conf, process,
+                                                  SlaveVariableContainer.managed_logs[process], parameters=parameters)
 
         return jsonify(returned_dict)
     return jsonify({"cases_list": [], "events": 0, "cases": 0})
@@ -386,7 +408,8 @@ def do_caching():
         parameters = {}
         parameters[PARAMETER_NO_SAMPLES] = no_samples
 
-        parquet_handler.do_caching(SlaveVariableContainer.conf, process, SlaveVariableContainer.managed_logs[process], parameters=parameters)
+        parquet_handler.do_caching(SlaveVariableContainer.conf, process, SlaveVariableContainer.managed_logs[process],
+                                   parameters=parameters)
 
     return jsonify({})
 
@@ -413,7 +436,8 @@ def get_events():
         parameters[PARAMETER_NO_SAMPLES] = no_samples
         parameters["case_id"] = case_id
 
-        events = parquet_handler.get_events(SlaveVariableContainer.conf, process, SlaveVariableContainer.managed_logs[process], parameters=parameters)
+        events = parquet_handler.get_events(SlaveVariableContainer.conf, process,
+                                            SlaveVariableContainer.managed_logs[process], parameters=parameters)
 
         return jsonify({"events": events})
     return jsonify({"events": {}})
@@ -448,7 +472,9 @@ def get_events_per_dotted():
         parameters["attribute3"] = attribute3
         parameters["max_no_events"] = max_no_ret_items
 
-        returned_dict = parquet_handler.get_events_per_dotted(SlaveVariableContainer.conf, process, SlaveVariableContainer.managed_logs[process], parameters=parameters)
+        returned_dict = parquet_handler.get_events_per_dotted(SlaveVariableContainer.conf, process,
+                                                              SlaveVariableContainer.managed_logs[process],
+                                                              parameters=parameters)
 
         return jsonify(returned_dict)
     return jsonify({})
@@ -478,7 +504,9 @@ def get_events_per_time():
         parameters[PARAMETER_NUM_RET_ITEMS] = max_no_ret_items
         parameters["max_no_of_points_to_sample"] = max_no_ret_items
 
-        returned_list = parquet_handler.get_events_per_time(SlaveVariableContainer.conf, process, SlaveVariableContainer.managed_logs[process], parameters=parameters)
+        returned_list = parquet_handler.get_events_per_time(SlaveVariableContainer.conf, process,
+                                                            SlaveVariableContainer.managed_logs[process],
+                                                            parameters=parameters)
 
         return jsonify({"points": returned_list})
 
@@ -509,7 +537,9 @@ def get_case_duration():
         parameters[PARAMETER_NUM_RET_ITEMS] = max_no_ret_items
         parameters["max_no_of_points_to_sample"] = max_no_ret_items
 
-        returned_list = parquet_handler.get_case_duration(SlaveVariableContainer.conf, process, SlaveVariableContainer.managed_logs[process], parameters=parameters)
+        returned_list = parquet_handler.get_case_duration(SlaveVariableContainer.conf, process,
+                                                          SlaveVariableContainer.managed_logs[process],
+                                                          parameters=parameters)
 
         return jsonify({"points": returned_list})
 
@@ -542,7 +572,9 @@ def get_numeric_attribute_values():
         parameters["max_no_of_points_to_sample"] = max_no_ret_items
         parameters["attribute_key"] = attribute_key
 
-        returned_list = parquet_handler.get_numeric_attribute_values(SlaveVariableContainer.conf, process, SlaveVariableContainer.managed_logs[process], parameters=parameters)
+        returned_list = parquet_handler.get_numeric_attribute_values(SlaveVariableContainer.conf, process,
+                                                                     SlaveVariableContainer.managed_logs[process],
+                                                                     parameters=parameters)
 
         return jsonify({"points": returned_list})
 
@@ -602,7 +634,8 @@ def perform_tbr():
     consider_remaining_in_fitness = content["consider_remaining_in_fitness"]
 
     if keyphrase == configuration.KEYPHRASE:
-        parameters = {"enable_parameters_precision": enable_parameters_precision, "consider_remaining_in_fitness": consider_remaining_in_fitness}
+        parameters = {"enable_parameters_precision": enable_parameters_precision,
+                      "consider_remaining_in_fitness": consider_remaining_in_fitness}
 
         return jsonify({"tbr": slave.perform_token_replay(petri_string, var_list, parameters=parameters)})
 
@@ -623,7 +656,7 @@ def do_shutdown():
     return jsonify({})
 
 
-#Additional functionality
+# Additional functionality
 def clean_log_from_na(log):
     for trace in log:
         for event in trace:
@@ -633,8 +666,15 @@ def clean_log_from_na(log):
                     del event[k]
     return log
 
+
 @SlaveSocketListener.app.route("/doTraining", methods=["GET"])
 def do_training():
+    """
+    This service is called by the master node. it implements the training of the ensemble on the given event log.
+
+    :return: empty json file
+    """
+
     keyphrase = request.args.get('keyphrase', type=str)
     process = request.args.get('process', type=str)
 
@@ -654,7 +694,6 @@ def do_training():
         # Create event log with only the first event of each case of the training log
         training_log_first_event = EventLog()
         for index, case in enumerate(training_log):
-
             new_case = Trace()
             new_case.attributes["concept:name"] = str(index)
             new_case.append(case[0])
@@ -677,12 +716,14 @@ def do_training():
             # Store total time of case
             test_time_vector.append((case[-1]["time:timestamp"] - case[0]["time:timestamp"]).total_seconds())
 
-        # Train and persist the ensemble
+        # Define the event attributes that the ensemble will use
         parameters = configuration.TRAINING_ATTRIBUTES[process]
-        parameters["y_orig"] = training_time_vector
 
+        # Train and persist the ensemble
+        parameters["y_orig"] = training_time_vector
         model = prediction_factory.train(training_log_first_event, variant="elasticnet", parameters=parameters)
-        with open(os.path.join(configuration.MODEL_PATH, SlaveVariableContainer.conf + '@@' + str(process)), "wb") as output:
+        with open(os.path.join(configuration.MODEL_PATH, SlaveVariableContainer.conf + '@@' + str(process)),
+                  "wb") as output:
             pickle.dump(model, output, pickle.HIGHEST_PROTOCOL)
 
         # Perform tests on prediction quality
@@ -692,21 +733,26 @@ def do_training():
             real_value = test_time_vector[i]
             error = prediction - real_value
             prediction_error.append(abs(error))
+        print("Mean error: " + str(statistics.mean(prediction_error)))
 
         print("Training of ensemble complete.")
 
-        print("Mean error: " + str(statistics.mean(prediction_error)))
-
-
     return jsonify({})
-
 
 @SlaveSocketListener.app.route("/doPrediction", methods=["POST"])
 def do_prediction():
+    """
+    This service is called by the master node. It implements the prediction of the remaining time of a case based on the
+    passed first event attributes.
+
+    :return: prediction result
+    """
+
     keyphrase = request.args.get('keyphrase', type=str)
     process = request.args.get('process', type=str)
 
     if keyphrase == configuration.KEYPHRASE:
+
         # Load the given event
         try:
             content = json.loads(request.data)
@@ -718,12 +764,15 @@ def do_prediction():
         trace = Trace()
         trace.append(first_event)
 
-        with open(os.path.join(configuration.MODEL_PATH, SlaveVariableContainer.conf + '@@' + str(process)), "rb") as input:
-            # Load the model that was trained on the given process
-            model = pickle.load(input)
+        # Load the model that was trained on the given process
+        with open(os.path.join(configuration.MODEL_PATH, SlaveVariableContainer.conf + '@@' + str(process)),
+                  "rb") as input:
+            try:
+                model = pickle.load(input)
+            except ImportError:
+                return jsonify({})
 
             # Perform prediction
             prediction = prediction_factory.test(model, trace)
 
     return jsonify({'prediction': prediction})
-

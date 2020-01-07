@@ -612,7 +612,8 @@ class Master:
             yield l[i:i + n]
 
     def perform_alignments(self, session, process, use_transition, no_samples, petri_string, var_list,
-                           max_align_time=sys.maxsize, max_align_time_trace=sys.maxsize, align_variant="dijkstra_no_heuristics"):
+                           max_align_time=sys.maxsize, max_align_time_trace=sys.maxsize,
+                           align_variant="dijkstra_no_heuristics"):
         all_slaves = list(self.slaves.keys())
 
         n = math.ceil(len(var_list) / len(all_slaves))
@@ -699,15 +700,26 @@ class Master:
 
         return None
 
-
     # Additional functionality
 
     def do_training(self, session, process, use_transition, no_samples):
+        """
+        This function creates a prediction request for all slave nodes.
+
+        :param session: not required
+        :param process: event log on which the ensemble is to be trained
+        :param use_transition: not rewuired
+        :param no_samples: not required
+        :return:
+        """
+
+        # Fetch the id of all active slaves
         all_slaves = list(self.slaves.keys())
 
+        # Store the request threads
         threads = []
-        statistics = {}
 
+        # Request training from all slaves
         for slave in all_slaves:
             slave_host = self.slaves[slave][1]
             slave_port = str(self.slaves[slave][2])
@@ -722,13 +734,29 @@ class Master:
 
         return None
 
-
     def do_prediction(self, session, process, use_transition, no_samples, content):
+        """
+        This function creates a prediction request for each slave node. It passes down the attributes of the first event
+        to each slave.
+
+        :param session: not required
+        :param process: event log that the model was trained on
+        :param use_transition: not rewuired
+        :param no_samples: not required
+        :param content: attributes of the first event of the
+        :return:
+        """
+
+        # Fetch the id of all active slaves
         all_slaves = list(self.slaves.keys())
 
+        # Store the request threads
         threads = []
+
+        # Store the prediction results
         results = []
 
+        # Request prediction from all slaves
         for slave in all_slaves:
             slave_host = self.slaves[slave][1]
             slave_port = str(self.slaves[slave][2])
@@ -738,10 +766,12 @@ class Master:
 
             threads.append(m)
 
+        # Store the results of the predictions
         for thread in threads:
             thread.join()
             results.append(thread.content['prediction'])
 
+        # Return the median of the results
         aggregated_result = statistics.median(results)
 
         return aggregated_result

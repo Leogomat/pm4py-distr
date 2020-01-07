@@ -13,6 +13,7 @@ from pm4py.objects.log.util import xes
 
 import logging, json
 import sys
+import os
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
@@ -143,7 +144,8 @@ def get_slaves_list():
     keyphrase = request.args.get('keyphrase', type=str)
 
     if keyphrase == configuration.KEYPHRASE:
-        return jsonify({"slaves": MasterVariableContainer.master.slaves, "uuid": MasterVariableContainer.master.unique_identifier})
+        return jsonify(
+            {"slaves": MasterVariableContainer.master.slaves, "uuid": MasterVariableContainer.master.unique_identifier})
     return jsonify({})
 
 
@@ -603,12 +605,15 @@ def perform_tbr():
 
     petri_string = content["petri_string"]
     var_list = content["var_list"]
-    enable_parameters_precision = content["enable_parameters_precision"] if "enable_parameters_precision" in content else False
-    consider_remaining_in_fitness = content["consider_remaining_in_fitness"] if "consider_remaining_in_fitness" in content else False
+    enable_parameters_precision = content[
+        "enable_parameters_precision"] if "enable_parameters_precision" in content else False
+    consider_remaining_in_fitness = content[
+        "consider_remaining_in_fitness"] if "consider_remaining_in_fitness" in content else False
 
     if keyphrase == configuration.KEYPHRASE:
         tbr = MasterVariableContainer.master.perform_tbr(session, process, use_transition, no_samples, petri_string,
-                                                         var_list, enable_parameters_precision, consider_remaining_in_fitness)
+                                                         var_list, enable_parameters_precision,
+                                                         consider_remaining_in_fitness)
         return jsonify({"tbr": tbr})
 
     return jsonify({})
@@ -630,46 +635,77 @@ def do_shutdown():
     return jsonify({})
 
 
-#Additional functionality
+# Additional functionality
 
+class NoEventLogError(Exception):
+    """Exception raised when the path to an event log does not exist"""
+    print("No event log available with the given name.")
+
+class NoEnsembleError(Exception):
+    """Exception raised when the path to an ensemble does not exist"""
+    print("No ensemble available with the given name.")
 
 @MasterSocketListener.app.route("/doTraining", methods=["GET"])
 def do_training():
+    """
+    This service trains an ensemble using the given event log and memorizes it.
+
+    :return: empty json file
+    """
+
+    # Check if the master node was initialized and the logs have been assigned to the slaves
     check_master_initialized()
     except_if_not_slave_loading_requested()
     wait_till_slave_load_requested()
 
+    # Fetch the service parameters
     process = request.args.get('process', type=str)
     keyphrase = request.args.get('keyphrase', type=str)
     session = request.args.get('session', type=str)
     use_transition = request.args.get(PARAMETER_USE_TRANSITION, type=str, default=str(DEFAULT_USE_TRANSITION))
     no_samples = request.args.get(PARAMETER_NO_SAMPLES, type=int, default=DEFAULT_MAX_NO_SAMPLES)
 
+    if (not os.path.exists(os.path.join(configuration.LOGS_PATH, process))):
+        raise NoEnsembleError
+
     if keyphrase == configuration.KEYPHRASE:
+        # Do a training service call for each slave
         MasterVariableContainer.master.do_training(session, process, use_transition, no_samples)
 
     return jsonify({})
 
-
 @MasterSocketListener.app.route("/doPrediction", methods=["POST"])
 def do_prediction():
+    """
+    This service delegates the prediction of the remaining time of a case based on its first event to the slaves,
+    then returns the aggregated result.
+
+    :return: aggregated prediction based on the first event of a case
+    """
+
+    # Check if the master node was initialized and the logs have been assigned to the slaves
     check_master_initialized()
     except_if_not_slave_loading_requested()
     wait_till_slave_load_requested()
 
+    # Fetch the service parameters
     process = request.args.get('process', type=str)
     keyphrase = request.args.get('keyphrase', type=str)
     session = request.args.get('session', type=str)
     use_transition = request.args.get(PARAMETER_USE_TRANSITION, type=str, default=str(DEFAULT_USE_TRANSITION))
     no_samples = request.args.get(PARAMETER_NO_SAMPLES, type=int, default=DEFAULT_MAX_NO_SAMPLES)
 
+    if (not os.path.exists(os.path.join(configuration.MODEL_PATH, SlaveVariableContainer.conf + '@@' + str(process)))):
+        raise NoEnsembleError
+
+    # Load post request data
     try:
         content = json.loads(request.data)
     except:
         content = json.loads(request.data.decode('utf-8'))
 
     if keyphrase == configuration.KEYPHRASE:
-
+        # Do a prediction service call for each slave
         prediction = MasterVariableContainer.master.do_prediction(session, process, use_transition, no_samples, content)
 
     return jsonify({'prediction': prediction})
