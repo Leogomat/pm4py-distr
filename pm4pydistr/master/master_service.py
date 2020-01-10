@@ -637,13 +637,9 @@ def do_shutdown():
 
 # Additional functionality
 
-class NoEventLogError(Exception):
-    """Exception raised when the path to an event log does not exist"""
-    print("No event log available with the given name.")
 
-class NoEnsembleError(Exception):
-    """Exception raised when the path to an ensemble does not exist"""
-    print("No ensemble available with the given name.")
+
+
 
 @MasterSocketListener.app.route("/doTraining", methods=["GET"])
 def do_training():
@@ -665,8 +661,8 @@ def do_training():
     use_transition = request.args.get(PARAMETER_USE_TRANSITION, type=str, default=str(DEFAULT_USE_TRANSITION))
     no_samples = request.args.get(PARAMETER_NO_SAMPLES, type=int, default=DEFAULT_MAX_NO_SAMPLES)
 
-    if (not os.path.exists(os.path.join(configuration.LOGS_PATH, process))):
-        raise NoEnsembleError
+    if (not os.path.exists(os.path.join(configuration.LOGS_PATH, process + ".xes"))):
+        raise NoEventLogError("No event log available with the given name.")
 
     if keyphrase == configuration.KEYPHRASE:
         # Do a training service call for each slave
@@ -694,9 +690,6 @@ def do_prediction():
     session = request.args.get('session', type=str)
     use_transition = request.args.get(PARAMETER_USE_TRANSITION, type=str, default=str(DEFAULT_USE_TRANSITION))
     no_samples = request.args.get(PARAMETER_NO_SAMPLES, type=int, default=DEFAULT_MAX_NO_SAMPLES)
-
-    if (not os.path.exists(os.path.join(configuration.MODEL_PATH, SlaveVariableContainer.conf + '@@' + str(process)))):
-        raise NoEnsembleError
 
     # Load post request data
     try:

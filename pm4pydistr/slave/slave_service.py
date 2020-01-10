@@ -666,6 +666,9 @@ def clean_log_from_na(log):
                     del event[k]
     return log
 
+class NoEnsembleError(Exception):
+    """Exception raised when the path to an ensemble does not exist"""
+    pass
 
 @SlaveSocketListener.app.route("/doTraining", methods=["GET"])
 def do_training():
@@ -722,6 +725,7 @@ def do_training():
         # Train and persist the ensemble
         parameters["y_orig"] = training_time_vector
         model = prediction_factory.train(training_log_first_event, variant="elasticnet", parameters=parameters)
+
         with open(os.path.join(configuration.MODEL_PATH, SlaveVariableContainer.conf + '@@' + str(process)),
                   "wb") as output:
             pickle.dump(model, output, pickle.HIGHEST_PROTOCOL)
@@ -769,10 +773,12 @@ def do_prediction():
                   "rb") as input:
             try:
                 model = pickle.load(input)
-            except ImportError:
-                return jsonify({})
 
-            # Perform prediction
-            prediction = prediction_factory.test(model, trace)
+                # Perform prediction
+                prediction = prediction_factory.test(model, trace)
+            except ImportError:
+                raise NoEnsembleError("No ensemble exists for the given event log.")
+
+
 
     return jsonify({'prediction': prediction})
